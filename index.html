@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ملخصاتي | دروس المنهاج الجزائري</title>
+<style>
+:root{--green:#087f5b;--green-dark:#066448;--light:#f3f8f5;--border:#dce8e1;--text:#23332c;--muted:#63766c}
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;color:var(--text);background:var(--light)}
+header{background:linear-gradient(135deg,#087f5b,#176b50);color:white;text-align:center;padding:38px 18px}header h1{margin:0 0 10px}header p{margin:0}
+main{width:min(1050px,92%);margin:25px auto}.panel{background:white;border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:20px;box-shadow:0 5px 18px #16352b0d}
+.filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+input,select,textarea{width:100%;padding:12px;font:inherit;border:1px solid var(--border);border-radius:9px;background:white}textarea{resize:vertical}
+#results{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:15px}.card{background:white;border:1px solid var(--border);border-radius:12px;padding:18px}.card h2{margin:0 0 10px;font-size:1.15rem}
+.meta{color:var(--muted);font-size:.94rem;line-height:1.7}.button,.download{display:inline-block;border:0;border-radius:8px;padding:10px 14px;background:var(--green);color:white;font:inherit;text-decoration:none;cursor:pointer}.button:hover,.download:hover{background:var(--green-dark)}
+.button-row{display:flex;flex-wrap:wrap;gap:9px;margin:12px 0}.empty{grid-column:1/-1;text-align:center;padding:25px;color:var(--muted)}
+#lessonVideo{display:none;width:100%;max-width:700px;margin-top:12px;border-radius:10px}#mindMapNodes{display:flex;flex-wrap:wrap;gap:9px;margin-top:12px}.mind-node{background:#e7f5ed;border:1px solid #c9e8d5;border-radius:20px;padding:8px 12px}
+footer{text-align:center;padding:20px;color:var(--muted);font-size:.9rem}
+</style></head>
+<body>
+<header><h1>ملخصاتي</h1><p>دروس وملخصات للمراحل الابتدائية والمتوسطة والثانوية</p></header>
+<main>
+<section class="panel"><div class="filters"><select id="year"><option value="">كل السنوات</option></select><select id="subject"><option value="">كل المواد</option></select><input id="search" type="search" placeholder="ابحث عن سنة أو مادة أو درس"></div></section>
+<section id="results" aria-live="polite"></section>
+<section class="panel" id="aiTutor"><h2>مساعد شرح الدروس</h2><p class="meta">الصق نص الدرس أو اكتبه. اختر لغة الصوت التي تناسب لغة النص.</p>
+<textarea id="lessonText" rows="7" placeholder="اكتب أو الصق نص الدرس هنا..."></textarea>
+<label for="speechLanguage">لغة الصوت:</label><select id="speechLanguage" style="margin-top:6px"><option value="ar">العربية</option><option value="fr-FR">Français</option><option value="en-US">English</option></select>
+<div class="button-row"><button class="button" type="button" onclick="explainLesson()">عرض الشرح</button><button class="button" type="button" onclick="speakExplanation()">🔊 استمع</button><button class="button" type="button" onclick="stopSpeech()">إيقاف الصوت</button><button class="button" type="button" onclick="makeMindMap()">إنشاء خريطة ذهنية</button></div>
+<div id="explanation" class="meta" style="white-space:pre-wrap"></div><div id="mindMapNodes"></div>
+<hr style="border:0;border-top:1px solid var(--border);margin:20px 0"><label for="videoFile"><strong>تشغيل فيديو شرح من جهازك:</strong></label><input id="videoFile" type="file" accept="video/*" style="margin-top:8px"><video id="lessonVideo" controls></video>
+</section></main><footer>ملخصاتي — منصة مراجعة دروس المنهاج الجزائري</footer>
+<script>
+const curriculum={
+"السنة الأولى ابتدائي":["اللغة العربية","الرياضيات","العلوم والتكنولوجيا","التربية الإسلامية","التربية المدنية","التاريخ والجغرافيا","التربية الفنية"],
+"السنة الثانية ابتدائي":["اللغة العربية","الرياضيات","العلوم والتكنولوجيا","التربية الإسلامية","التربية المدنية","التاريخ والجغرافيا","التربية الفنية"],
+"السنة الثالثة ابتدائي":["اللغة العربية","اللغة الفرنسية","الرياضيات","العلوم والتكنولوجيا","التربية الإسلامية","التاريخ","التربية الفنية"],
+"السنة الرابعة ابتدائي":["اللغة العربية","اللغة الأمازيغية","اللغة الفرنسية","الرياضيات","العلوم والتكنولوجيا","التربية الإسلامية","التربية المدنية","التاريخ والجغرافيا","التربية الفنية"],
+"السنة الخامسة ابتدائي":["اللغة العربية","اللغة الأمازيغية","اللغة الفرنسية","الرياضيات","العلوم والتكنولوجيا","التربية الإسلامية","التربية المدنية","التاريخ والجغرافيا","التربية الفنية"],
+"السنة الأولى متوسط":["اللغة العربية","اللغة الأمازيغية","اللغة الفرنسية","اللغة الإنجليزية","الرياضيات","العلوم الطبيعية","الفيزياء","التربية الإسلامية","التاريخ والجغرافيا","التربية المدنية","الإعلام الآلي"],
+"السنة الثانية متوسط":["اللغة العربية","اللغة الأمازيغية","اللغة الفرنسية","اللغة الإنجليزية","الرياضيات","العلوم الطبيعية","الفيزياء","التربية الإسلامية","التاريخ والجغرافيا","التربية المدنية","الإعلام الآلي"],
+"السنة الثالثة متوسط":["اللغة العربية","اللغة الأمازيغية","اللغة الفرنسية","اللغة الإنجليزية","الرياضيات","العلوم الطبيعية","الفيزياء","التربية الإسلامية","التاريخ والجغرافيا","التربية المدنية","الإعلام الآلي"],
+"السنة الرابعة متوسط":["اللغة العربية","اللغة الأمازيغية","اللغة الفرنسية","اللغة الإنجليزية","الرياضيات","العلوم الطبيعية","الفيزياء","التربية الإسلامية","التاريخ والجغرافيا","التربية المدنية","الإعلام الآلي"],
+"السنة الأولى ثانوي":["اللغة العربية","اللغة الأمازيغية","اللغة الفرنسية","اللغة الإنجليزية","الرياضيات","العلوم الطبيعية","الفيزياء والتكنولوجيا","التاريخ والجغرافيا","التربية الإسلامية","الإعلام الآلي","التكنولوجيا"],
+"السنة الثانية ثانوي":["اللغة العربية","اللغة الأمازيغية","اللغة الفرنسية","اللغة الإنجليزية","الرياضيات","العلوم الطبيعية","الفيزياء","التاريخ والجغرافيا","التربية الإسلامية","الفلسفة","التسيير والاقتصاد"],
+"السنة الثالثة ثانوي":["اللغة العربية","اللغة الأمازيغية","اللغة الفرنسية","اللغة الإنجليزية","الرياضيات","العلوم الطبيعية","الفيزياء","التاريخ والجغرافيا","التربية الإسلامية","الفلسفة","التسيير والاقتصاد"]};
+const lessons=[];
+const yearSelect=document.getElementById("year"),subjectSelect=document.getElementById("subject"),searchInput=document.getElementById("search"),results=document.getElementById("results");
+function escapeHTML(v){return String(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]))}
+yearSelect.innerHTML='<option value="">كل السنوات</option>'+Object.keys(curriculum).map(y=>'<option value="'+escapeHTML(y)+'">'+escapeHTML(y)+'</option>').join("");
+function updateSubjects(){const y=yearSelect.value,s=y?curriculum[y]:[...new Set(Object.values(curriculum).flat())];subjectSelect.innerHTML='<option value="">كل المواد</option>'+s.map(x=>'<option value="'+escapeHTML(x)+'">'+escapeHTML(x)+'</option>').join("");renderLessons()}
+function renderLessons(){const y=yearSelect.value,s=subjectSelect.value,q=searchInput.value.trim().toLowerCase(),cards=[];Object.entries(curriculum).forEach(([year,subjects])=>{if(y&&year!==y)return;subjects.forEach(subject=>{if(s&&subject!==s)return;const found=lessons.filter(l=>l.year===year&&l.subject===subject&&(!q||(l.title+' '+l.year+' '+l.subject).toLowerCase().includes(q)));if(!q||(year+' '+subject).toLowerCase().includes(q)||found.length)cards.push({year,subject,found})})});if(!cards.length){results.innerHTML='<p class="empty">لا توجد نتائج مطابقة.</p>';return}results.innerHTML=cards.map(c=>'<article class="card"><h2>'+escapeHTML(c.subject)+'</h2><div class="meta">'+escapeHTML(c.year)+'</div>'+(c.found.length?c.found.map(l=>'<p>'+escapeHTML(l.title)+'</p><a class="download" href="'+escapeHTML(l.file)+'" download>تحميل PDF</a>').join(""):'<p class="meta">ستضاف الدروس وملفات PDF هنا قريباً.</p>')+'</article>').join("")}
+yearSelect.addEventListener("change",updateSubjects);subjectSelect.addEventListener("change",renderLessons);searchInput.addEventListener("input",renderLessons);updateSubjects();
+let currentExplanation="";
+function explainLesson(){const t=document.getElementById("lessonText").value.trim(),o=document.getElementById("explanation");if(!t){o.textContent="اكتب نص الدرس أولاً.";currentExplanation="";return}currentExplanation="نص الدرس للمراجعة:\n"+t+"\n\nحاول تلخيص الفكرة الأساسية بكلماتك، ثم راجع الأمثلة والتمارين.";o.textContent=currentExplanation}
+function speakExplanation(){if(!currentExplanation)explainLesson();if(!currentExplanation)return;if(!("speechSynthesis"in window)){alert("ميزة القراءة الصوتية غير مدعومة في هذا المتصفح.");return}const lang=document.getElementById("speechLanguage").value,u=new SpeechSynthesisUtterance(currentExplanation),voices=speechSynthesis.getVoices();u.lang=lang;const v=voices.find(x=>x.lang.toLowerCase().startsWith(lang.slice(0,2).toLowerCase()));if(v)u.voice=v;u.rate=.9;speechSynthesis.cancel();speechSynthesis.speak(u)}
+function stopSpeech(){if("speechSynthesis"in window)speechSynthesis.cancel()}
+function makeMindMap(){const t=document.getElementById("lessonText").value.trim(),c=document.getElementById("mindMapNodes");if(!t){c.textContent="اكتب نص الدرس أولاً.";return}const words=[...new Set(t.replace(/[،؛.!؟:()[\]{}]/g," ").split(/\s+/).filter(w=>w.length>3))].slice(0,12);c.innerHTML='<strong style="width:100%">🧠 خريطة كلمات الدرس</strong>'+words.map(w=>'<span class="mind-node">'+escapeHTML(w)+'</span>').join("")}
+document.getElementById("videoFile").addEventListener("change",e=>{const f=e.target.files[0],v=document.getElementById("lessonVideo");if(!f)return;if(v.dataset.objectUrl)URL.revokeObjectURL(v.dataset.objectUrl);const u=URL.createObjectURL(f);v.src=u;v.dataset.objectUrl=u;v.style.display="block"});
+</script></body></html>
